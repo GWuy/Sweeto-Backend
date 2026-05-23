@@ -1,58 +1,58 @@
-name: Docker Build & Push to Harbor
-
-on:
-  push:
-    branches:
-      - master
-      - main
-    paths:
-      - 'api/**'
-      - 'infra/**'
-      - 'core/**'
-      - 'gradle/libs.versions.toml'
-      - 'build.gradle.kts'
-      - 'Dockerfile'
-      - '.github/workflows/docker.yml'
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  OTEL_VERSION: "2.25.0"
-
-jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 25
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '25'
-          cache: gradle
-
-      - name: Grant execute permission for Gradle wrapper
-        run: chmod +x ./gradlew
-
-      - name: Login to Harbor
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.DOCKERHUB_REGISTRY }}
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Download OpenTelemetry Java Agent for Jib
-        run: |
-          mkdir -p api/src/main/jib/app
-          curl -fL "https://repo1.maven.org/maven2/io/opentelemetry/javaagent/opentelemetry-javaagent/${OTEL_VERSION}/opentelemetry-javaagent-${OTEL_VERSION}.jar" -o api/src/main/jib/app/opentelemetry-javaagent.jar
-
-      - name: Build and push image with Jib
-        env:
-          JIB_TO_AUTH_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          JIB_TO_AUTH_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: ./gradlew :api:jib -Djib.to.image=${{ secrets.DOCKERHUB_REGISTRY }}/sweeto/dev:latest
+#name: Docker Build & Push to Harbor
+#
+#on:
+#  push:
+#    branches:
+#      - master
+#      - main
+#    paths:
+#      - 'api/**'
+#      - 'infra/**'
+#      - 'core/**'
+#      - 'gradle/libs.versions.toml'
+#      - 'build.gradle.kts'
+#      - 'Dockerfile'
+#      - '.github/workflows/docker.yml'
+#
+#concurrency:
+#  group: ${{ github.workflow }}-${{ github.ref }}
+#  cancel-in-progress: true
+#
+#env:
+#  OTEL_VERSION: "2.25.0"
+#
+#jobs:
+#  build-and-push:
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#
+#      - name: Set up JDK 25
+#        uses: actions/setup-java@v4
+#        with:
+#          distribution: temurin
+#          java-version: '25'
+#          cache: gradle
+#
+#      - name: Grant execute permission for Gradle wrapper
+#        run: chmod +x ./gradlew
+#
+#      - name: Login to Harbor
+#        uses: docker/login-action@v3
+#        with:
+#          registry: ${{ secrets.DOCKERHUB_REGISTRY }}
+#          username: ${{ secrets.DOCKERHUB_USERNAME }}
+#          password: ${{ secrets.DOCKERHUB_TOKEN }}
+#
+#      - name: Download OpenTelemetry Java Agent for Jib
+#        run: |
+#          mkdir -p api/src/main/jib/app
+#          curl -fL "https://repo1.maven.org/maven2/io/opentelemetry/javaagent/opentelemetry-javaagent/${OTEL_VERSION}/opentelemetry-javaagent-${OTEL_VERSION}.jar" -o api/src/main/jib/app/opentelemetry-javaagent.jar
+#
+#      - name: Build and push image with Jib
+#        env:
+#          JIB_TO_AUTH_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+#          JIB_TO_AUTH_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
+#        run: ./gradlew :api:jib -Djib.to.image=${{ secrets.DOCKERHUB_REGISTRY }}/sweeto/dev:latest
