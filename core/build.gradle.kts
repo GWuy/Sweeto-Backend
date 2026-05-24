@@ -1,27 +1,11 @@
-plugins {
-    `java`
-}
-
-group = "com.gwuy.sweeto"
-version = "0.0.1-SNAPSHOT"
-description = "core"
-
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
-    }
-}
-
-repositories {
-    mavenCentral()
-}
+// Pure domain module – no Spring runtime dependency.
+// Contains: entities, value objects, enums, domain interfaces, exceptions.
+// Add domain-level dependencies here as needed, e.g.:
+//   implementation(libs.mapstruct)
+//   compileOnly(libs.lombok)
+//   annotationProcessor(libs.lombok)
+//   annotationProcessor(libs.mapstruct.processor)
 
 dependencies {
-    // Core không phụ thuộc Spring Boot; giữ dependencies nhẹ.
-    // Thêm libraries thuần Java hoặc utility libs ở đây nếu cần.
-    testImplementation("org.junit.jupiter:junit-jupiter:5.9.3")
-}
 
-tasks.withType<Test> {
-    useJUnitPlatform()
 }

@@ -1,6 +1,6 @@
 [versions]
 # Spring Boot 3.x (the project requirement)
-spring-boot = "3.2.12"          # <-- Spring Boot 3.x
+spring-boot = "3.5.6"       # <-- Spring Boot 3.x
 dependency-management = "1.1.7"
 lombok = "1.18.42"
 lombok-mapstruct-binding = "0.2.0"

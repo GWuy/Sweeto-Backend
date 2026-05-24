@@ -1,36 +1,16 @@
 plugins {
-    // Use version-catalog aliases declared in gradle/libs.versions.toml
     alias(libs.plugins.spring.boot)
-    alias(libs.plugins.dependency.management)
-    `java`
-}
-
-group = "com.gwuy.sweeto"
-version = "0.0.1-SNAPSHOT"
-description = "api"
-
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
-    }
-}
-
-repositories {
-    mavenCentral()
+    alias(libs.plugins.jib)
 }
 
 dependencies {
     implementation(project(":core"))
     implementation(project(":infra"))
 
-    // Spring Web starter (version managed by Spring Boot BOM via dependency-management plugin)
-    implementation("org.springframework.boot:spring-boot-starter-web")
-    // Common: add validation, security, openapi etc as needed:
-    implementation("org.springframework.boot:spring-boot-starter-validation")
-    // Test
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-}
+    // Spring Boot starters (versions managed by BOM)
+    implementation(libs.spring.boot.starter.web)
+    implementation(libs.spring.boot.starter.validation)
 
-tasks.withType<Test> {
-    useJUnitPlatform()
+    // Test
+    testImplementation(libs.spring.boot.starter.test)
 }

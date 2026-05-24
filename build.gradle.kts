@@ -1,49 +1,57 @@
 plugins {
-    `java`
-    // Declare plugin aliases but don't apply them here.
-    // Modules that need Spring Boot should use alias(libs.plugins.spring-boot) in their own build file.
+    java
     alias(libs.plugins.spring.boot) apply false
     alias(libs.plugins.dependency.management) apply false
-}
-
-group = "com.gwuy"
-version = "0.0.1-SNAPSHOT"
-description = "sweeto"
-
-allprojects {
-    repositories {
-        mavenLocal()
-        mavenCentral()
-        maven { url = uri("https://jitpack.io") }
-    }
+    alias(libs.plugins.jib) apply false
 }
 
 subprojects {
-    // Apply only java and dependency-management (dependency-management is safe: it only imports BOMs, it does not add Spring runtime)
     apply(plugin = "java")
     apply(plugin = "io.spring.dependency-management")
 
-    // Use Java 21 toolchain for every module
+    group = "com.gwuy.sweeto"
+    version = "1.0.0"
+
+    // Import Spring Boot BOM for version management across all modules.
+    // This does NOT add any Spring runtime; it only pins dependency versions.
+    the<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension>().apply {
+        imports {
+            mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
+        }
+    }
+
     java {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(21))
+            languageVersion.set(JavaLanguageVersion.of(25))
         }
     }
 
     tasks.withType<JavaCompile> {
         options.encoding = "UTF-8"
-        options.compilerArgs.addAll(listOf("-parameters", "-Xlint:unchecked", "-Xlint:deprecation"))
+        options.compilerArgs.addAll(
+            listOf(
+                "-parameters",
+                "-Xlint:unchecked",
+                "-Xlint:deprecation"
+            )
+        )
     }
 
-    tasks.withType<Test> {
+    // Compatibility task for IDE/Tooling API Kotlin DSL model requests.
+    // Newer Gradle versions may not provide `prepareKotlinBuildScriptModel` by default,
+    // but some IDE sync flows still try to invoke it on each module.
+    tasks.register("prepareKotlinBuildScriptModel") {
+        group = "help"
+        description = "Compatibility no-op for IDE Kotlin DSL import"
+    }
+
+    configurations {
+        compileOnly {
+            extendsFrom(configurations.annotationProcessor.get())
+        }
+    }
+
+    tasks.test {
         useJUnitPlatform()
     }
-
-    // By default enable normal JAR for libraries
-    tasks.named("jar") {
-        enabled = true
-    }
-
-    // If a module later applies the Spring Boot plugin, 'bootJar' will be provided by that plugin.
-    // Do not enable/disable bootJar here globally to avoid affecting non-spring modules.
 }
