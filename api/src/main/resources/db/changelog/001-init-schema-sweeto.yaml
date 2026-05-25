@@ -1,0 +1,3078 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-init-schema-sweeto
+      author: sweeto
+      changes:
+        - sql:
+            sql: |
+              CREATE SCHEMA IF NOT EXISTS sweeto;
+              SET search_path TO sweeto;
+
+        # =====================================================
+        # AUTHENTICATION / ACCESS CONTROL
+        # =====================================================
+
+        - createTable:
+            tableName: account_status
+            columns:
+              - column:
+                  name: account_status_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: status_code
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: status_name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+
+        - createTable:
+            tableName: accounts
+            columns:
+              - column:
+                  name: account_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: password_hash
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: email_verified
+                  type: BOOLEAN
+                  defaultValue: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: account_status_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_login_at
+                  type: TIMESTAMP
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_accounts_status
+            baseTableName: accounts
+            baseColumnNames: account_status_id
+            referencedTableName: account_status
+            referencedColumnNames: account_status_id
+
+        - createTable:
+            tableName: roles
+            columns:
+              - column:
+                  name: role_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: role_code
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: role_name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: permissions
+            columns:
+              - column:
+                  name: permission_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: permission_code
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: permission_name
+                  type: VARCHAR(150)
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: account_roles
+            columns:
+              - column:
+                  name: account_role_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: account_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: assigned_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: assigned_by_account_id
+                  type: VARCHAR(20)
+            uniqueConstraints:
+              - columnNames: account_id,role_id
+                constraintName: uq_account_roles_account_role
+
+        - addForeignKeyConstraint:
+            constraintName: fk_account_roles_account
+            baseTableName: account_roles
+            baseColumnNames: account_id
+            referencedTableName: accounts
+            referencedColumnNames: account_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_account_roles_role
+            baseTableName: account_roles
+            baseColumnNames: role_id
+            referencedTableName: roles
+            referencedColumnNames: role_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_account_roles_assigned_by
+            baseTableName: account_roles
+            baseColumnNames: assigned_by_account_id
+            referencedTableName: accounts
+            referencedColumnNames: account_id
+
+        - createTable:
+            tableName: role_permissions
+            columns:
+              - column:
+                  name: role_permission_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: role_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: permission_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: granted_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: granted_by_account_id
+                  type: VARCHAR(20)
+            uniqueConstraints:
+              - columnNames: role_id,permission_id
+                constraintName: uq_role_permissions_role_permission
+
+        - addForeignKeyConstraint:
+            constraintName: fk_role_permissions_role
+            baseTableName: role_permissions
+            baseColumnNames: role_id
+            referencedTableName: roles
+            referencedColumnNames: role_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_role_permissions_permission
+            baseTableName: role_permissions
+            baseColumnNames: permission_id
+            referencedTableName: permissions
+            referencedColumnNames: permission_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_role_permissions_granted_by
+            baseTableName: role_permissions
+            baseColumnNames: granted_by_account_id
+            referencedTableName: accounts
+            referencedColumnNames: account_id
+
+        - createTable:
+            tableName: refresh_tokens
+            columns:
+              - column:
+                  name: refresh_token_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: account_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: token
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: expires_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: revoked
+                  type: BOOLEAN
+                  defaultValue: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: revoked_at
+                  type: TIMESTAMP
+
+        - addForeignKeyConstraint:
+            constraintName: fk_refresh_tokens_account
+            baseTableName: refresh_tokens
+            baseColumnNames: account_id
+            referencedTableName: accounts
+            referencedColumnNames: account_id
+            onDelete: CASCADE
+
+        - createTable:
+            tableName: email_verifications
+            columns:
+              - column:
+                  name: email_verification_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: account_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: token
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: expires_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: verified_at
+                  type: TIMESTAMP
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_email_verifications_account
+            baseTableName: email_verifications
+            baseColumnNames: account_id
+            referencedTableName: accounts
+            referencedColumnNames: account_id
+            onDelete: CASCADE
+
+        - createTable:
+            tableName: password_reset_tokens
+            columns:
+              - column:
+                  name: password_reset_token_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: account_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: token
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: expires_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: used
+                  type: BOOLEAN
+                  defaultValue: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: used_at
+                  type: TIMESTAMP
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_password_reset_tokens_account
+            baseTableName: password_reset_tokens
+            baseColumnNames: account_id
+            referencedTableName: accounts
+            referencedColumnNames: account_id
+            onDelete: CASCADE
+
+        # =====================================================
+        # USER MANAGEMENT
+        # =====================================================
+
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: user_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: account_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: full_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: phone
+                  type: VARCHAR(20)
+                  constraints:
+                    unique: true
+              - column:
+                  name: avatar_url
+                  type: TEXT
+              - column:
+                  name: date_of_birth
+                  type: DATE
+              - column:
+                  name: gender
+                  type: VARCHAR(20)
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValue: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_users_account
+            baseTableName: users
+            baseColumnNames: account_id
+            referencedTableName: accounts
+            referencedColumnNames: account_id
+            onDelete: CASCADE
+
+        - createTable:
+            tableName: addresses
+            columns:
+              - column:
+                  name: address_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: receiver_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: receiver_phone
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: province
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: district
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ward
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: address_line
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: postal_code
+                  type: VARCHAR(20)
+              - column:
+                  name: is_default
+                  type: BOOLEAN
+                  defaultValue: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_addresses_user
+            baseTableName: addresses
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: user_id
+            onDelete: CASCADE
+
+        # =====================================================
+        # MASTER DATA FOR CATALOG / CUSTOMIZATION
+        # =====================================================
+
+        - createTable:
+            tableName: categories
+            columns:
+              - column:
+                  name: category_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: category_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValue: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: cake_status
+            columns:
+              - column:
+                  name: cake_status_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: status_code
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: status_name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: cake_sizes_master
+            columns:
+              - column:
+                  name: cake_size_master_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: size_code
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: size_name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: diameter_cm
+                  type: INTEGER
+              - column:
+                  name: serves_people
+                  type: INTEGER
+              - column:
+                  name: additional_price
+                  type: NUMERIC(12,2)
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValue: true
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: cream_colors
+            columns:
+              - column:
+                  name: cream_color_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: color_code
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: color_name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: hex_code
+                  type: VARCHAR(20)
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValue: true
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: flavors
+            columns:
+              - column:
+                  name: flavor_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: flavor_name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValue: true
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: toppings
+            columns:
+              - column:
+                  name: topping_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: topping_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: extra_price
+                  type: NUMERIC(12,2)
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: image_url
+                  type: TEXT
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValue: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: cakes
+            columns:
+              - column:
+                  name: cake_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: category_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: cake_status_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: cake_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: short_description
+                  type: VARCHAR(500)
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: base_price
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: preparation_time_minutes
+                  type: INTEGER
+              - column:
+                  name: average_rating
+                  type: NUMERIC(3,2)
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: total_reviews
+                  type: INTEGER
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_customizable
+                  type: BOOLEAN
+                  defaultValue: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValue: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cakes_category
+            baseTableName: cakes
+            baseColumnNames: category_id
+            referencedTableName: categories
+            referencedColumnNames: category_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cakes_status
+            baseTableName: cakes
+            baseColumnNames: cake_status_id
+            referencedTableName: cake_status
+            referencedColumnNames: cake_status_id
+
+        - createTable:
+            tableName: cake_images
+            columns:
+              - column:
+                  name: cake_image_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: cake_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: image_url
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: display_order
+                  type: INTEGER
+                  defaultValue: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_thumbnail
+                  type: BOOLEAN
+                  defaultValue: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cake_images_cake
+            baseTableName: cake_images
+            baseColumnNames: cake_id
+            referencedTableName: cakes
+            referencedColumnNames: cake_id
+            onDelete: CASCADE
+
+        - createTable:
+            tableName: cake_flavors
+            columns:
+              - column:
+                  name: cake_flavor_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: cake_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: flavor_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+            uniqueConstraints:
+              - columnNames: cake_id,flavor_id
+                constraintName: uq_cake_flavors_cake_flavor
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cake_flavors_cake
+            baseTableName: cake_flavors
+            baseColumnNames: cake_id
+            referencedTableName: cakes
+            referencedColumnNames: cake_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cake_flavors_flavor
+            baseTableName: cake_flavors
+            baseColumnNames: flavor_id
+            referencedTableName: flavors
+            referencedColumnNames: flavor_id
+
+        - createTable:
+            tableName: cake_sizes
+            columns:
+              - column:
+                  name: cake_size_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: cake_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: cake_size_master_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: additional_price
+                  type: NUMERIC(12,2)
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_available
+                  type: BOOLEAN
+                  defaultValue: true
+                  constraints:
+                    nullable: false
+            uniqueConstraints:
+              - columnNames: cake_id,cake_size_master_id
+                constraintName: uq_cake_sizes_cake_size
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cake_sizes_cake
+            baseTableName: cake_sizes
+            baseColumnNames: cake_id
+            referencedTableName: cakes
+            referencedColumnNames: cake_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cake_sizes_master
+            baseTableName: cake_sizes
+            baseColumnNames: cake_size_master_id
+            referencedTableName: cake_sizes_master
+            referencedColumnNames: cake_size_master_id
+
+        - createTable:
+            tableName: cake_toppings
+            columns:
+              - column:
+                  name: cake_topping_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: cake_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: topping_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_optional
+                  type: BOOLEAN
+                  defaultValue: true
+                  constraints:
+                    nullable: false
+            uniqueConstraints:
+              - columnNames: cake_id,topping_id
+                constraintName: uq_cake_toppings_cake_topping
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cake_toppings_cake
+            baseTableName: cake_toppings
+            baseColumnNames: cake_id
+            referencedTableName: cakes
+            referencedColumnNames: cake_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cake_toppings_topping
+            baseTableName: cake_toppings
+            baseColumnNames: topping_id
+            referencedTableName: toppings
+            referencedColumnNames: topping_id
+
+        - createTable:
+            tableName: cake_3d_models
+            columns:
+              - column:
+                  name: cake_3d_model_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: cake_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: model_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: model_format
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: model_url
+                  type: TEXT
+              - column:
+                  name: model_binary
+                  type: BYTEA
+              - column:
+                  name: thumbnail_url
+                  type: TEXT
+              - column:
+                  name: model_metadata
+                  type: JSONB
+              - column:
+                  name: is_default
+                  type: BOOLEAN
+                  defaultValue: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValue: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cake_3d_models_cake
+            baseTableName: cake_3d_models
+            baseColumnNames: cake_id
+            referencedTableName: cakes
+            referencedColumnNames: cake_id
+            onDelete: CASCADE
+
+        # =====================================================
+        # 3D CUSTOMIZATION
+        # =====================================================
+
+        - createTable:
+            tableName: cake_customizations
+            columns:
+              - column:
+                  name: cake_customization_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: cake_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: cake_3d_model_id
+                  type: VARCHAR(20)
+              - column:
+                  name: cake_size_master_id
+                  type: VARCHAR(20)
+              - column:
+                  name: cream_color_id
+                  type: VARCHAR(20)
+              - column:
+                  name: design_name
+                  type: VARCHAR(255)
+              - column:
+                  name: model_configuration
+                  type: JSONB
+              - column:
+                  name: toppings_configuration
+                  type: JSONB
+              - column:
+                  name: text_content
+                  type: VARCHAR(500)
+              - column:
+                  name: preview_image_url
+                  type: TEXT
+              - column:
+                  name: calculated_price
+                  type: NUMERIC(12,2)
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_saved
+                  type: BOOLEAN
+                  defaultValue: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cake_customizations_user
+            baseTableName: cake_customizations
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: user_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cake_customizations_cake
+            baseTableName: cake_customizations
+            baseColumnNames: cake_id
+            referencedTableName: cakes
+            referencedColumnNames: cake_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cake_customizations_model
+            baseTableName: cake_customizations
+            baseColumnNames: cake_3d_model_id
+            referencedTableName: cake_3d_models
+            referencedColumnNames: cake_3d_model_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cake_customizations_size
+            baseTableName: cake_customizations
+            baseColumnNames: cake_size_master_id
+            referencedTableName: cake_sizes_master
+            referencedColumnNames: cake_size_master_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cake_customizations_color
+            baseTableName: cake_customizations
+            baseColumnNames: cream_color_id
+            referencedTableName: cream_colors
+            referencedColumnNames: cream_color_id
+
+        - createTable:
+            tableName: customization_add_ons
+            columns:
+              - column:
+                  name: customization_add_on_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: cake_customization_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: topping_id
+                  type: VARCHAR(20)
+              - column:
+                  name: decoration_name
+                  type: VARCHAR(255)
+              - column:
+                  name: position_x
+                  type: NUMERIC(12,4)
+              - column:
+                  name: position_y
+                  type: NUMERIC(12,4)
+              - column:
+                  name: position_z
+                  type: NUMERIC(12,4)
+              - column:
+                  name: rotation_x
+                  type: NUMERIC(12,4)
+              - column:
+                  name: rotation_y
+                  type: NUMERIC(12,4)
+              - column:
+                  name: rotation_z
+                  type: NUMERIC(12,4)
+              - column:
+                  name: scale_factor
+                  type: NUMERIC(12,4)
+              - column:
+                  name: extra_price
+                  type: NUMERIC(12,2)
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_customization_add_ons_customization
+            baseTableName: customization_add_ons
+            baseColumnNames: cake_customization_id
+            referencedTableName: cake_customizations
+            referencedColumnNames: cake_customization_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_customization_add_ons_topping
+            baseTableName: customization_add_ons
+            baseColumnNames: topping_id
+            referencedTableName: toppings
+            referencedColumnNames: topping_id
+
+        # =====================================================
+        # CART
+        # =====================================================
+
+        - createTable:
+            tableName: carts
+            columns:
+              - column:
+                  name: cart_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_carts_user
+            baseTableName: carts
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: user_id
+            onDelete: CASCADE
+
+        - createTable:
+            tableName: cart_items
+            columns:
+              - column:
+                  name: cart_item_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: cart_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: cake_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: cake_customization_id
+                  type: VARCHAR(20)
+              - column:
+                  name: quantity
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: unit_price
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: line_total
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cart_items_cart
+            baseTableName: cart_items
+            baseColumnNames: cart_id
+            referencedTableName: carts
+            referencedColumnNames: cart_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cart_items_cake
+            baseTableName: cart_items
+            baseColumnNames: cake_id
+            referencedTableName: cakes
+            referencedColumnNames: cake_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cart_items_customization
+            baseTableName: cart_items
+            baseColumnNames: cake_customization_id
+            referencedTableName: cake_customizations
+            referencedColumnNames: cake_customization_id
+
+        # =====================================================
+        # ORDERS
+        # =====================================================
+
+        - createTable:
+            tableName: order_status
+            columns:
+              - column:
+                  name: order_status_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: status_code
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: status_name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: sort_order
+                  type: INTEGER
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: orders
+            columns:
+              - column:
+                  name: order_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: order_status_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: order_number
+                  type: VARCHAR(50)
+                  constraints:
+                    unique: true
+              - column:
+                  name: subtotal_amount
+                  type: NUMERIC(12,2)
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: shipping_fee
+                  type: NUMERIC(12,2)
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: discount_amount
+                  type: NUMERIC(12,2)
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: total_amount
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: payment_method
+                  type: VARCHAR(50)
+              - column:
+                  name: note
+                  type: TEXT
+              - column:
+                  name: placed_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: confirmed_at
+                  type: TIMESTAMP
+              - column:
+                  name: baking_at
+                  type: TIMESTAMP
+              - column:
+                  name: delivering_at
+                  type: TIMESTAMP
+              - column:
+                  name: completed_at
+                  type: TIMESTAMP
+              - column:
+                  name: cancelled_at
+                  type: TIMESTAMP
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_orders_user
+            baseTableName: orders
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: user_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_orders_status
+            baseTableName: orders
+            baseColumnNames: order_status_id
+            referencedTableName: order_status
+            referencedColumnNames: order_status_id
+
+        - createTable:
+            tableName: order_addresses
+            columns:
+              - column:
+                  name: order_address_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: order_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: receiver_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: receiver_phone
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: province
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: district
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ward
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: address_line
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: postal_code
+                  type: VARCHAR(20)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_order_addresses_order
+            baseTableName: order_addresses
+            baseColumnNames: order_id
+            referencedTableName: orders
+            referencedColumnNames: order_id
+            onDelete: CASCADE
+
+        - createTable:
+            tableName: order_items
+            columns:
+              - column:
+                  name: order_item_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: order_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: cake_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: cake_customization_id
+                  type: VARCHAR(20)
+              - column:
+                  name: quantity
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: unit_price
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: line_total
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: item_snapshot
+                  type: JSONB
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_order_items_order
+            baseTableName: order_items
+            baseColumnNames: order_id
+            referencedTableName: orders
+            referencedColumnNames: order_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_order_items_cake
+            baseTableName: order_items
+            baseColumnNames: cake_id
+            referencedTableName: cakes
+            referencedColumnNames: cake_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_order_items_customization
+            baseTableName: order_items
+            baseColumnNames: cake_customization_id
+            referencedTableName: cake_customizations
+            referencedColumnNames: cake_customization_id
+
+        - createTable:
+            tableName: order_status_history
+            columns:
+              - column:
+                  name: order_status_history_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: order_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: order_status_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: changed_by_account_id
+                  type: VARCHAR(20)
+              - column:
+                  name: note
+                  type: TEXT
+              - column:
+                  name: changed_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_order_status_history_order
+            baseTableName: order_status_history
+            baseColumnNames: order_id
+            referencedTableName: orders
+            referencedColumnNames: order_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_order_status_history_status
+            baseTableName: order_status_history
+            baseColumnNames: order_status_id
+            referencedTableName: order_status
+            referencedColumnNames: order_status_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_order_status_history_actor
+            baseTableName: order_status_history
+            baseColumnNames: changed_by_account_id
+            referencedTableName: accounts
+            referencedColumnNames: account_id
+
+        # =====================================================
+        # PAYMENTS / REFUNDS
+        # =====================================================
+
+        - createTable:
+            tableName: payment_status
+            columns:
+              - column:
+                  name: payment_status_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: status_code
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: status_name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: payments
+            columns:
+              - column:
+                  name: payment_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: order_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: payment_status_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: payment_method
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: provider_transaction_id
+                  type: VARCHAR(255)
+              - column:
+                  name: amount
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: paid_at
+                  type: TIMESTAMP
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_payments_order
+            baseTableName: payments
+            baseColumnNames: order_id
+            referencedTableName: orders
+            referencedColumnNames: order_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_payments_status
+            baseTableName: payments
+            baseColumnNames: payment_status_id
+            referencedTableName: payment_status
+            referencedColumnNames: payment_status_id
+
+        - createTable:
+            tableName: payment_transactions
+            columns:
+              - column:
+                  name: payment_transaction_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: payment_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: transaction_code
+                  type: VARCHAR(255)
+              - column:
+                  name: provider
+                  type: VARCHAR(50)
+              - column:
+                  name: transaction_status
+                  type: VARCHAR(50)
+              - column:
+                  name: transaction_time
+                  type: TIMESTAMP
+              - column:
+                  name: raw_payload
+                  type: JSONB
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_payment_transactions_payment
+            baseTableName: payment_transactions
+            baseColumnNames: payment_id
+            referencedTableName: payments
+            referencedColumnNames: payment_id
+            onDelete: CASCADE
+
+        - createTable:
+            tableName: refunds
+            columns:
+              - column:
+                  name: refund_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: payment_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: sender_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: refund_amount
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: refund_reason
+                  type: TEXT
+              - column:
+                  name: refund_status
+                  type: VARCHAR(50)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processed_at
+                  type: TIMESTAMP
+
+        - addForeignKeyConstraint:
+            constraintName: fk_refunds_payment
+            baseTableName: refunds
+            baseColumnNames: payment_id
+            referencedTableName: payments
+            referencedColumnNames: payment_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_refunds_sender
+            baseTableName: refunds
+            baseColumnNames: sender_id
+            referencedTableName: accounts
+            referencedColumnNames: account_id
+
+        - createTable:
+            tableName: refunds_evidences
+            columns:
+              - column:
+                  name: refunds_evidences_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: refund_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: image_evidence
+                  type: TEXT
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_refunds_evidences_refund
+            baseTableName: refunds_evidences
+            baseColumnNames: refund_id
+            referencedTableName: refunds
+            referencedColumnNames: refund_id
+            onDelete: CASCADE
+
+        # =====================================================
+        # NOTIFICATIONS
+        # =====================================================
+
+        - createTable:
+            tableName: notifications
+            columns:
+              - column:
+                  name: notification_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: notification_type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: message
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reference_type
+                  type: VARCHAR(50)
+              - column:
+                  name: reference_id
+                  type: VARCHAR(20)
+              - column:
+                  name: is_read
+                  type: BOOLEAN
+                  defaultValue: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: read_at
+                  type: TIMESTAMP
+              - column:
+                  name: delivered_at
+                  type: TIMESTAMP
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_notifications_user
+            baseTableName: notifications
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: user_id
+            onDelete: CASCADE
+
+        # =====================================================
+        # REVIEWS
+        # =====================================================
+
+        - createTable:
+            tableName: reviews
+            columns:
+              - column:
+                  name: review_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: order_id
+                  type: VARCHAR(20)
+              - column:
+                  name: cake_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: rating
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: comment
+                  type: TEXT
+              - column:
+                  name: hidden
+                  type: BOOLEAN
+                  defaultValue: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: moderated_by_account_id
+                  type: VARCHAR(20)
+              - column:
+                  name: moderated_at
+                  type: TIMESTAMP
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+            uniqueConstraints:
+              - columnNames: user_id,cake_id
+                constraintName: uq_reviews_user_cake
+
+        - addForeignKeyConstraint:
+            constraintName: fk_reviews_user
+            baseTableName: reviews
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: user_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_reviews_order
+            baseTableName: reviews
+            baseColumnNames: order_id
+            referencedTableName: orders
+            referencedColumnNames: order_id
+            onDelete: SET NULL
+
+        - addForeignKeyConstraint:
+            constraintName: fk_reviews_cake
+            baseTableName: reviews
+            baseColumnNames: cake_id
+            referencedTableName: cakes
+            referencedColumnNames: cake_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_reviews_moderator
+            baseTableName: reviews
+            baseColumnNames: moderated_by_account_id
+            referencedTableName: accounts
+            referencedColumnNames: account_id
+
+        - createTable:
+            tableName: review_images
+            columns:
+              - column:
+                  name: review_image_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: review_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: image_url
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: display_order
+                  type: INTEGER
+                  defaultValue: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_review_images_review
+            baseTableName: review_images
+            baseColumnNames: review_id
+            referencedTableName: reviews
+            referencedColumnNames: review_id
+            onDelete: CASCADE
+
+        # =====================================================
+        # INVENTORY / PRODUCTION
+        # =====================================================
+
+        - createTable:
+            tableName: ingredients
+            columns:
+              - column:
+                  name: ingredient_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: ingredient_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: unit
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: minimum_stock
+                  type: NUMERIC(12,2)
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValue: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: cake_ingredients
+            columns:
+              - column:
+                  name: cake_ingredient_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: cake_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ingredient_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantity
+                  type: NUMERIC(12,2)
+              - column:
+                  name: unit
+                  type: VARCHAR(50)
+            uniqueConstraints:
+              - columnNames: cake_id,ingredient_id
+                constraintName: uq_cake_ingredients_cake_ingredient
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cake_ingredients_cake
+            baseTableName: cake_ingredients
+            baseColumnNames: cake_id
+            referencedTableName: cakes
+            referencedColumnNames: cake_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_cake_ingredients_ingredient
+            baseTableName: cake_ingredients
+            baseColumnNames: ingredient_id
+            referencedTableName: ingredients
+            referencedColumnNames: ingredient_id
+
+        - createTable:
+            tableName: inventory
+            columns:
+              - column:
+                  name: inventory_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: ingredient_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: current_quantity
+                  type: NUMERIC(12,2)
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reserved_quantity
+                  type: NUMERIC(12,2)
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_inventory_ingredient
+            baseTableName: inventory
+            baseColumnNames: ingredient_id
+            referencedTableName: ingredients
+            referencedColumnNames: ingredient_id
+            onDelete: CASCADE
+
+        - createTable:
+            tableName: stock_batches
+            columns:
+              - column:
+                  name: stock_batch_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: ingredient_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: batch_code
+                  type: VARCHAR(100)
+                  constraints:
+                    unique: true
+              - column:
+                  name: quantity
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: received_date
+                  type: DATE
+              - column:
+                  name: expiry_date
+                  type: DATE
+              - column:
+                  name: unit_cost
+                  type: NUMERIC(12,2)
+              - column:
+                  name: remaining_quantity
+                  type: NUMERIC(12,2)
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_stock_batches_ingredient
+            baseTableName: stock_batches
+            baseColumnNames: ingredient_id
+            referencedTableName: ingredients
+            referencedColumnNames: ingredient_id
+            onDelete: CASCADE
+
+        - createTable:
+            tableName: stock_movements
+            columns:
+              - column:
+                  name: stock_movement_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: ingredient_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: stock_batch_id
+                  type: VARCHAR(20)
+              - column:
+                  name: movement_type
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantity
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reference_type
+                  type: VARCHAR(50)
+              - column:
+                  name: reference_id
+                  type: VARCHAR(20)
+              - column:
+                  name: note
+                  type: TEXT
+              - column:
+                  name: moved_by_account_id
+                  type: VARCHAR(20)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_stock_movements_ingredient
+            baseTableName: stock_movements
+            baseColumnNames: ingredient_id
+            referencedTableName: ingredients
+            referencedColumnNames: ingredient_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_stock_movements_batch
+            baseTableName: stock_movements
+            baseColumnNames: stock_batch_id
+            referencedTableName: stock_batches
+            referencedColumnNames: stock_batch_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_stock_movements_actor
+            baseTableName: stock_movements
+            baseColumnNames: moved_by_account_id
+            referencedTableName: accounts
+            referencedColumnNames: account_id
+
+        # =====================================================
+        # SUPPLIERS / PROCUREMENT
+        # =====================================================
+
+        - createTable:
+            tableName: supplier_status
+            columns:
+              - column:
+                  name: supplier_status_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: status_code
+                  type: VARCHAR(50)
+                  constraints:
+                    unique: true
+              - column:
+                  name: status_name
+                  type: VARCHAR(100)
+
+        - createTable:
+            tableName: suppliers
+            columns:
+              - column:
+                  name: supplier_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: supplier_status_id
+                  type: VARCHAR(20)
+              - column:
+                  name: supplier_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+              - column:
+                  name: phone
+                  type: VARCHAR(20)
+              - column:
+                  name: address
+                  type: TEXT
+              - column:
+                  name: tax_code
+                  type: VARCHAR(50)
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValue: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_suppliers_status
+            baseTableName: suppliers
+            baseColumnNames: supplier_status_id
+            referencedTableName: supplier_status
+            referencedColumnNames: supplier_status_id
+
+        - createTable:
+            tableName: supplier_ingredients
+            columns:
+              - column:
+                  name: supplier_ingredient_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: supplier_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ingredient_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: supplier_sku
+                  type: VARCHAR(100)
+              - column:
+                  name: is_preferred
+                  type: BOOLEAN
+                  defaultValue: false
+                  constraints:
+                    nullable: false
+            uniqueConstraints:
+              - columnNames: supplier_id,ingredient_id
+                constraintName: uq_supplier_ingredients_supplier_ingredient
+
+        - addForeignKeyConstraint:
+            constraintName: fk_supplier_ingredients_supplier
+            baseTableName: supplier_ingredients
+            baseColumnNames: supplier_id
+            referencedTableName: suppliers
+            referencedColumnNames: supplier_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_supplier_ingredients_ingredient
+            baseTableName: supplier_ingredients
+            baseColumnNames: ingredient_id
+            referencedTableName: ingredients
+            referencedColumnNames: ingredient_id
+            onDelete: CASCADE
+
+        - createTable:
+            tableName: purchase_order_status
+            columns:
+              - column:
+                  name: purchase_order_status_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: status_code
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: status_name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: purchase_orders
+            columns:
+              - column:
+                  name: purchase_order_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: supplier_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: purchase_order_status_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: order_number
+                  type: VARCHAR(50)
+                  constraints:
+                    unique: true
+              - column:
+                  name: order_date
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expected_delivery_date
+                  type: DATE
+              - column:
+                  name: received_date
+                  type: DATE
+              - column:
+                  name: total_amount
+                  type: NUMERIC(12,2)
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: note
+                  type: TEXT
+              - column:
+                  name: created_by_account_id
+                  type: VARCHAR(20)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_purchase_orders_supplier
+            baseTableName: purchase_orders
+            baseColumnNames: supplier_id
+            referencedTableName: suppliers
+            referencedColumnNames: supplier_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_purchase_orders_status
+            baseTableName: purchase_orders
+            baseColumnNames: purchase_order_status_id
+            referencedTableName: purchase_order_status
+            referencedColumnNames: purchase_order_status_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_purchase_orders_creator
+            baseTableName: purchase_orders
+            baseColumnNames: created_by_account_id
+            referencedTableName: accounts
+            referencedColumnNames: account_id
+
+        - createTable:
+            tableName: purchase_order_items
+            columns:
+              - column:
+                  name: purchase_order_item_id
+                  type: VARCHAR(20)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: purchase_order_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ingredient_id
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantity
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: unit_price
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: line_total
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueDate: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_purchase_order_items_order
+            baseTableName: purchase_order_items
+            baseColumnNames: purchase_order_id
+            referencedTableName: purchase_orders
+            referencedColumnNames: purchase_order_id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_purchase_order_items_ingredient
+            baseTableName: purchase_order_items
+            baseColumnNames: ingredient_id
+            referencedTableName: ingredients
+            referencedColumnNames: ingredient_id
+
+        # =====================================================
+        # INITIAL REFERENCE DATA
+        # =====================================================
+
+        - insert:
+            tableName: account_status
+            columns:
+              - column:
+                  name: account_status_id
+                  value: '1929000000000852001'
+              - column:
+                  name: status_code
+                  value: 'ACTIVE'
+              - column:
+                  name: status_name
+                  value: 'Active'
+              - column:
+                  name: description
+                  value: 'Active account'
+
+        - insert:
+            tableName: account_status
+            columns:
+              - column:
+                  name: account_status_id
+                  value: '1929000000000076319'
+              - column:
+                  name: status_code
+                  value: 'INACTIVE'
+              - column:
+                  name: status_name
+                  value: 'Inactive'
+              - column:
+                  name: description
+                  value: 'Inactive account'
+
+        - insert:
+            tableName: account_status
+            columns:
+              - column:
+                  name: account_status_id
+                  value: '1929000000000125794'
+              - column:
+                  name: status_code
+                  value: 'SUSPENDED'
+              - column:
+                  name: status_name
+                  value: 'Suspended'
+              - column:
+                  name: description
+                  value: 'Suspended account'
+
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: role_id
+                  value: '1929000000000000001'
+              - column:
+                  name: role_code
+                  value: 'SUPER_ADMIN'
+              - column:
+                  name: role_name
+                  value: 'Super Administrator'
+              - column:
+                  name: description
+                  value: 'Full system access.'
+
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: role_id
+                  value: '1929000000000000002'
+              - column:
+                  name: role_code
+                  value: 'ADMIN'
+              - column:
+                  name: role_name
+                  value: 'Administrator'
+              - column:
+                  name: description
+                  value: 'Manage platform operations.'
+
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: role_id
+                  value: '1929000000000000003'
+              - column:
+                  name: role_code
+                  value: 'MANAGER'
+              - column:
+                  name: role_name
+                  value: 'Business Manager'
+              - column:
+                  name: description
+                  value: 'Oversee operations and reporting.'
+
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: role_id
+                  value: '1929000000000000004'
+              - column:
+                  name: role_code
+                  value: 'STAFF'
+              - column:
+                  name: role_name
+                  value: 'Staff'
+              - column:
+                  name: description
+                  value: 'Process orders and support daily operations.'
+
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: role_id
+                  value: '1929000000000000005'
+              - column:
+                  name: role_code
+                  value: 'CHEF'
+              - column:
+                  name: role_name
+                  value: 'Chef'
+              - column:
+                  name: description
+                  value: 'Prepare bakery products and manage kitchen workflows.'
+
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: role_id
+                  value: '1929000000000000006'
+              - column:
+                  name: role_code
+                  value: 'CUSTOMER_CARE'
+              - column:
+                  name: role_name
+                  value: 'Customer Care'
+              - column:
+                  name: description
+                  value: 'Support customers and process refunds.'
+
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: role_id
+                  value: '1929000000000000007'
+              - column:
+                  name: role_code
+                  value: 'INVENTORY_STAFF'
+              - column:
+                  name: role_name
+                  value: 'Inventory Staff'
+              - column:
+                  name: description
+                  value: 'Manage stock and ingredients.'
+
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: role_id
+                  value: '1929000000000000008'
+              - column:
+                  name: role_code
+                  value: 'CUSTOMER'
+              - column:
+                  name: role_name
+                  value: 'Customer'
+              - column:
+                  name: description
+                  value: 'Place orders and submit reviews.'
+
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: role_id
+                  value: '1929000000000000009'
+              - column:
+                  name: role_code
+                  value: 'GUEST'
+              - column:
+                  name: role_name
+                  value: 'Guest'
+              - column:
+                  name: description
+                  value: 'Browse public cake catalog.'
+
+        - insert:
+            tableName: order_status
+            columns:
+              - column:
+                  name: order_status_id
+                  value: '1929000000001000001'
+              - column:
+                  name: status_code
+                  value: 'PENDING'
+              - column:
+                  name: status_name
+                  value: 'Pending'
+              - column:
+                  name: sort_order
+                  valueNumeric: 1
+
+        - insert:
+            tableName: order_status
+            columns:
+              - column:
+                  name: order_status_id
+                  value: '1929000000001000002'
+              - column:
+                  name: status_code
+                  value: 'CONFIRMED'
+              - column:
+                  name: status_name
+                  value: 'Confirmed'
+              - column:
+                  name: sort_order
+                  valueNumeric: 2
+
+        - insert:
+            tableName: order_status
+            columns:
+              - column:
+                  name: order_status_id
+                  value: '1929000000001000003'
+              - column:
+                  name: status_code
+                  value: 'BAKING'
+              - column:
+                  name: status_name
+                  value: 'Baking'
+              - column:
+                  name: sort_order
+                  valueNumeric: 3
+
+        - insert:
+            tableName: order_status
+            columns:
+              - column:
+                  name: order_status_id
+                  value: '1929000000001000004'
+              - column:
+                  name: status_code
+                  value: 'DELIVERING'
+              - column:
+                  name: status_name
+                  value: 'Delivering'
+              - column:
+                  name: sort_order
+                  valueNumeric: 4
+
+        - insert:
+            tableName: order_status
+            columns:
+              - column:
+                  name: order_status_id
+                  value: '1929000000001000005'
+              - column:
+                  name: status_code
+                  value: 'COMPLETED'
+              - column:
+                  name: status_name
+                  value: 'Completed'
+              - column:
+                  name: sort_order
+                  valueNumeric: 5
+
+        - insert:
+            tableName: order_status
+            columns:
+              - column:
+                  name: order_status_id
+                  value: '1929000000001000006'
+              - column:
+                  name: status_code
+                  value: 'CANCELLED'
+              - column:
+                  name: status_name
+                  value: 'Cancelled'
+              - column:
+                  name: sort_order
+                  valueNumeric: 6
+
+        - insert:
+            tableName: payment_status
+            columns:
+              - column:
+                  name: payment_status_id
+                  value: '1929000000002000001'
+              - column:
+                  name: status_code
+                  value: 'PENDING'
+              - column:
+                  name: status_name
+                  value: 'Pending'
+
+        - insert:
+            tableName: payment_status
+            columns:
+              - column:
+                  name: payment_status_id
+                  value: '1929000000002000002'
+              - column:
+                  name: status_code
+                  value: 'PAID'
+              - column:
+                  name: status_name
+                  value: 'Paid'
+
+        - insert:
+            tableName: payment_status
+            columns:
+              - column:
+                  name: payment_status_id
+                  value: '1929000000002000003'
+              - column:
+                  name: status_code
+                  value: 'FAILED'
+              - column:
+                  name: status_name
+                  value: 'Failed'
+
+        - insert:
+            tableName: payment_status
+            columns:
+              - column:
+                  name: payment_status_id
+                  value: '1929000000002000004'
+              - column:
+                  name: status_code
+                  value: 'REFUNDED'
+              - column:
+                  name: status_name
+                  value: 'Refunded'
+
+        - insert:
+            tableName: payment_status
+            columns:
+              - column:
+                  name: payment_status_id
+                  value: '1929000000002000005'
+              - column:
+                  name: status_code
+                  value: 'CANCELLED'
+              - column:
+                  name: status_name
+                  value: 'Cancelled'
+
+        - insert:
+            tableName: cake_status
+            columns:
+              - column:
+                  name: cake_status_id
+                  value: '1929000000003000001'
+              - column:
+                  name: status_code
+                  value: 'ACTIVE'
+              - column:
+                  name: status_name
+                  value: 'Active'
+
+        - insert:
+            tableName: cake_status
+            columns:
+              - column:
+                  name: cake_status_id
+                  value: '1929000000003000002'
+              - column:
+                  name: status_code
+                  value: 'INACTIVE'
+              - column:
+                  name: status_name
+                  value: 'Inactive'
+
+        - insert:
+            tableName: cake_status
+            columns:
+              - column:
+                  name: cake_status_id
+                  value: '1929000000003000003'
+              - column:
+                  name: status_code
+                  value: 'OUT_OF_STOCK'
+              - column:
+                  name: status_name
+                  value: 'Out of Stock'
+
+        - insert:
+            tableName: cake_status
+            columns:
+              - column:
+                  name: cake_status_id
+                  value: '1929000000003000004'
+              - column:
+                  name: status_code
+                  value: 'DISCONTINUED'
+              - column:
+                  name: status_name
+                  value: 'Discontinued'
+
+        - insert:
+            tableName: supplier_status
+            columns:
+              - column:
+                  name: supplier_status_id
+                  value: '1929000000004000001'
+              - column:
+                  name: status_code
+                  value: 'ACTIVE'
+              - column:
+                  name: status_name
+                  value: 'Active'
+
+        - insert:
+            tableName: supplier_status
+            columns:
+              - column:
+                  name: supplier_status_id
+                  value: '1929000000004000002'
+              - column:
+                  name: status_code
+                  value: 'INACTIVE'
+              - column:
+                  name: status_name
+                  value: 'Inactive'
+
+        - insert:
+            tableName: purchase_order_status
+            columns:
+              - column:
+                  name: purchase_order_status_id
+                  value: '1929000000005000001'
+              - column:
+                  name: status_code
+                  value: 'DRAFT'
+              - column:
+                  name: status_name
+                  value: 'Draft'
+
+        - insert:
+            tableName: purchase_order_status
+            columns:
+              - column:
+                  name: purchase_order_status_id
+                  value: '1929000000005000002'
+              - column:
+                  name: status_code
+                  value: 'SENT'
+              - column:
+                  name: status_name
+                  value: 'Sent'
+
+        - insert:
+            tableName: purchase_order_status
+            columns:
+              - column:
+                  name: purchase_order_status_id
+                  value: '1929000000005000003'
+              - column:
+                  name: status_code
+                  value: 'RECEIVED'
+              - column:
+                  name: status_name
+                  value: 'Received'
+
+        - insert:
+            tableName: purchase_order_status
+            columns:
+              - column:
+                  name: purchase_order_status_id
+                  value: '1929000000005000004'
+              - column:
+                  name: status_code
+                  value: 'CANCELLED'
+              - column:
+                  name: status_name
+                  value: 'Cancelled'
