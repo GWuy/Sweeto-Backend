@@ -9,7 +9,7 @@ subprojects {
     apply(plugin = "java")
     apply(plugin = "io.spring.dependency-management")
 
-    group = "com.gwuy.sweeto_hrm"
+    group = "com.gwuy.sweeto"
     version = "1.0.0"
 
     // Import Spring Boot BOM for version management across all modules.

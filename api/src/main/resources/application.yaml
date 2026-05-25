@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: inter-hub-lms-service
+  jmx:
+    enabled: false
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:sweeto}}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driverClassName: org.postgresql.Driver
+    hikari:
+      schema: ${SCHEMA_NAME:sweeto}
+      minimum-idle: 1
+      maximum-pool-size: 2
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: ${SCHEMA_NAME:sweeto}
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    change-log: classpath:/db/changelog/db.changelog-master.yaml
+    default-schema: ${SCHEMA_NAME:ih_lms}
+    enabled: true
+
+server:
+  port: 8080
+  tomcat:
+    threads:
+      max: 20
+      min-spare: 2

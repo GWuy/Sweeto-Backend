@@ -1,4 +1,4 @@
-rootProject.name = "sweeto_hrm"
+rootProject.name = "sweeto"
 
 pluginManagement {
     repositories {
@@ -15,4 +15,4 @@ dependencyResolutionManagement {
     }
 }
 
-include("api", "core", "infra", "app")
+include("api", "core", "infra")
