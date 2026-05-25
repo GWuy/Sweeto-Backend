@@ -1,13 +1,13 @@
-package com.gwuy.sweeto.api;
+package com.gwuy.cn123.app;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ApiApplication {
+public class AppApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(ApiApplication.class, args);
+        SpringApplication.run(AppApplication.class, args);
     }
 
 }

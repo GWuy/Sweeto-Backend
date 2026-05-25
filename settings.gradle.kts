@@ -15,4 +15,4 @@ dependencyResolutionManagement {
     }
 }
 
-include("api", "core", "infra")
+include("api", "core", "infra", "app")
