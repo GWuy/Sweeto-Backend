@@ -7,9 +7,9 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":infra"))
 
-    // Spring Boot starters (versions managed by BOM)
     implementation(libs.spring.boot.starter.web)
     implementation(libs.spring.boot.starter.validation)
+    implementation(libs.common.library)
 
     // Test
     testImplementation(libs.spring.boot.starter.test)
