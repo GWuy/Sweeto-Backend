@@ -1,31 +1,33 @@
 spring:
   application:
-    name: inter-hub-lms-service
+    name: sweeto
   jmx:
     enabled: false
   datasource:
-    url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:sweeto}}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://localhost:5432/Sweeto
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
     driverClassName: org.postgresql.Driver
     hikari:
       schema: ${SCHEMA_NAME:sweeto}
       minimum-idle: 1
-      maximum-pool-size: 2
+      maximum-pool-size: 5
   servlet:
     multipart:
       max-file-size: 50MB
       max-request-size: 50MB
   jpa:
     open-in-view: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
       hibernate:
         default_schema: ${SCHEMA_NAME:sweeto}
+        dialect: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: validate
   liquibase:
     change-log: classpath:/db/changelog/db.changelog-master.yaml
-    default-schema: ${SCHEMA_NAME:ih_lms}
+    default-schema: ${SCHEMA_NAME:sweeto}
     enabled: true
 
 server:
