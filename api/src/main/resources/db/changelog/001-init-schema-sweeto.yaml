@@ -2749,7 +2749,7 @@ databaseChangeLog:
                   value: 'INVENTORY_STAFF'
               - column:
                   name: role_name
-                  value: 'Inventory Staff'
+                  value: 'InventoryModel Staff'
               - column:
                   name: description
                   value: 'Manage stock and ingredients.'

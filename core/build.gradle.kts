@@ -7,5 +7,5 @@
 //   annotationProcessor(libs.mapstruct.processor)
 
 dependencies {
-
+    implementation(libs.lombok)
 }

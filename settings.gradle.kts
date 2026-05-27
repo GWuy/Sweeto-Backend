@@ -1,4 +1,4 @@
-rootProject.name = "sweeto"
+rootProject.name = "sweeto_auth"
 
 pluginManagement {
     repositories {

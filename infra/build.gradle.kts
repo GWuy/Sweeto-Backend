@@ -6,4 +6,5 @@ dependencies {
     implementation(libs.spring.boot.starter.validation)
     implementation(libs.lombok)
     implementation(libs.postgresql)
+    implementation(libs.common.library)
 }
